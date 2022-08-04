@@ -5,6 +5,16 @@ var player1 = new Image();
 
 //player1.src = "https://lh3.googleusercontent.com/10PkSlNxU3SMcIQPGEH0Ius_wV1hiRoTtfEQFvaW_YpzdA7aZrd3LxirFvvLc93ulP_-LgVCSV4yjXpNRVNibx9iQtnebU-Vrg62xhHSQhPDAn_nhE6uBYNyoJ1unD9lVp-3ncMlEw=w2400"
 
+const modal = document.getElementById('modal');
+const closeModalButton = document.getElementById('close-modal-button');
+const overlay = document.getElementById('overlay');
+closeModalButton.addEventListener('click', ()=> {
+    closeModal();
+});
+const modalHeader = document.getElementById('modal-title');
+const modalBody = document.getElementById('modal-body');
+
+var triggerList = [];
 
 //LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
 
@@ -184,6 +194,20 @@ class fixedCommand {
 
     }
 }
+class localFixedCommand {
+    constructor (prefix, localFunc) {
+        this.prefix = prefix; 
+        //this.localFunc = localFunc;
+    }
+
+    executeCommand(message) {
+        if (nickname != "TCR") {return}
+        if (message.slice(0, this.prefix.length) != this.prefix) {return}
+        loadListToModal();
+        openModal();
+        //this.localFunc();
+    }
+}
 
 class forceClientRefreshCommand {
     constructor (prefix, sockEmitFlag) {
@@ -210,7 +234,6 @@ class forceClientRefreshCommand {
 
     }
 }
-
 class idCommand {
     constructor (prefix, sockEmitFlag) {
         this.prefix = prefix; 
@@ -231,7 +254,38 @@ class idCommand {
         
     }
 }
+class freeNumCommand {
+    constructor (prefix, sockEmitFlag) {
+        this.prefix = prefix; 
+        this.sockEmitFlag = sockEmitFlag;
+    }
 
+    executeCommand(message) {
+        //var extractCaps = message.slice(5).replace(/[^A-Z]+/g, "");
+        var extractNum = message.replace(/\D/g,'');
+        if (message.slice(0, this.prefix.length) != this.prefix) {return}
+        const playerId = nickname
+        
+        sock.emit(this.sockEmitFlag, { extractNum, playerId });
+        
+    }
+}
+
+class numCommand {
+    constructor (prefix, sockEmitFlag) {
+        this.prefix = prefix; 
+        this.sockEmitFlag = sockEmitFlag;
+    }
+
+    executeCommand(message) {
+        var extractedNum = message.replace(/\D/g,'');
+        if (nickname != "TCR") {return}
+        if (message.slice(0, this.prefix.length) != this.prefix) {return}
+        
+        var getNum = extractedNum;
+        sock.emit(this.sockEmitFlag, getNum);
+    }
+}
 class numAndIdCommand {
     constructor (prefix, sockEmitFlag) {
         this.prefix = prefix; 
@@ -253,9 +307,13 @@ class numAndIdCommand {
 
 const allCommands = [
     new idCommand("TCR: winner ", 'winner'),
+    new freeNumCommand(nickname + ": password ", 'unlockUsingPassword'),
     new idCommand("TCR: mind control ", 'mindControl'),
     new numAndIdCommand("TCR: +", 'addSteps'),
+    new numAndIdCommand("TCR: good ", 'sendPW'),
     new fixedCommand("TCR: mind control off", 'mindControlOff'),
+    new numCommand("TCR: open lock ", 'openLock'),
+    new localFixedCommand("TCR: list", openModal),
     new idCommand("TCR: go a2 ", 'teleportPlayerArea2'),
     new idCommand("TCR: go a1 ", 'teleportPlayerMainArea'),
     new idCommand("TCR: go a3 ", 'teleportPlayerArea3')
@@ -268,6 +326,35 @@ const allCommands = [
 //============COMMAND BUILDER======================COMMAND BUILDER===================COMMAND BUILDER==========
 
     
+function openModal() {
+    if (modal === null) return
+    modal.classList.add('active');
+    overlay.classList.add('active');
+}
+function loadListToModal() {
+    modalHeader.innerHTML = "Trigger list";
+    modalBody.innerHTML = "";
+    triggerList.forEach((item) => {
+        modalBody.innerHTML += item + " <br>";
+    });
+    
+}
+function closeModal() {
+    if (modal === null) return
+    modal.classList.remove('active');
+    overlay.classList.remove('active');
+}
+function updateModal(data) {
+    modalHeader.innerHTML = data.head;
+    modalBody.innerHTML = data.body;
+}
+
+const getEntryFromId = id => {
+    
+    const findThis = Object.values(getObject.allLocksCoord).find(obj => obj.id === id);
+    console.log(findThis);
+    return Object.keys(getObject.allLocksCoord).find(key => getObject.allLocksCoord[key] === findThis);
+}
 
 function appendMessage(message) {
     const messageDiv = document.createElement('div');
@@ -300,6 +387,9 @@ const nicknameAndArea1 = [nickname, "mainArea"].join(",");
 const nicknameAndArea2 = [nickname, "area2"].join(",");
 const nicknameAndArea3 = [nickname, "area3"].join(",");
 const nicknameAndArea4 = [nickname, "mainArea2"].join(",");
+const nicknameAndArea5 = [nickname, "area4"].join(",");
+
+var getObject = null;
 
 
 function getAllMatrix (data) {
@@ -308,12 +398,15 @@ function getAllMatrix (data) {
         [nicknameAndArea1]: data.sendGridMatrix1,
         [nicknameAndArea2]: data.sendGridMatrix2,
         [nicknameAndArea3]: data.sendGridMatrix3,
-        [nicknameAndArea4]: data.sendGridMatrix1
+        [nicknameAndArea4]: data.sendGridMatrix1,
+        [nicknameAndArea5]: data.sendGridMatrix4,
     }
 
     return onWhichMatrix;
 
 }
+
+//**********GRID SYSTEM CLIENT**********GRID SYSTEM CLIENT**********GRID SYSTEM CLIENT**********GRID SYSTEM CLIENT
 
 class GridSystemClient {
     constructor(matrix) {
@@ -328,7 +421,8 @@ class GridSystemClient {
         this.cdm = {
             area1: [{x:2,y:10},{x:17,y:10},{x:20,y:2},{x:20,y:18},{x:23,y:3},{x:23,y:17},{x:30,y:4},{x:30,y:16},{x:34,y:10}],
             area2: [{x:1,y:8},{x:10,y:10},{x:13,y:1},{x:21,y:13}],
-            area3: [{x:16,y:2}]
+            area3: [{x:16,y:2}],
+            area4: [{x:7,y:8}]
         }
 
         this.p1 = { color: "grey", lable: 2, id: this.students[0] };
@@ -351,10 +445,21 @@ class GridSystemClient {
 
         this.items = {
             1: {color: "#4488FF", playerId: null},
-            20: {color: "#111", playerId: "💰"}
+            20: {color: "#111", playerId: "💰"},
+            30: {color: "#111", playerId: "🔒"}
         }
         this.details = {
-            [this.items[20].playerId]: {font: "17px Times New Roman", rowValue: 21}
+            [this.items[20].playerId]: {font:"17px Times New Roman",rowValue:21},
+            [this.items[30].playerId]: {font:"23px Times New Roman",rowValue:21,text:"1",txtRow:22,txtCol:12}
+        }
+        this.locks = {
+            lock1: "1",
+            lock2: "2"
+        }
+        this.allLocksCoord = {
+            "area4,6,3":{password:10,success:"",id:"1"},
+            "area4,7,3":{password:13,success:"",id:"2"},
+            "area4,11,5":{password:13,success:"",id:"3"}
         }
     }
 
@@ -370,7 +475,6 @@ class GridSystemClient {
         });
 
         if(this.items[cellVal] === undefined) { return {color, playerId}; }
-        //if(this.items[cellVal].playerId === undefined) { return {color, playerId}; }
 
         playerId = this.items[cellVal].playerId
         color = this.items[cellVal].color
@@ -382,18 +486,43 @@ class GridSystemClient {
 
         if (plyrDet.playerId === null) {return}
 
-        this.outlineContext.font = "13px Times New Roman";
+        if (this.students.includes(plyrDet.playerId)) {
+            this.outlineContext.font = "13px Times New Roman";
             this.outlineContext.fillStyle = "black";
-            this.outlineContext.fillText(plyrDet.playerId, col * (this.cellSize + this.padding) + 2,
+            this.outlineContext.fillText(plyrDet.playerId, col * (this.cellSize + this.padding) + 1,
                 row * (this.cellSize + this.padding) + 18);
+        }
 
         if (this.details[plyrDet.playerId] === undefined) {return}
 
         this.outlineContext.font = this.details[plyrDet.playerId].font;
-            this.outlineContext.fillText(plyrDet.playerId, col * (this.cellSize + this.padding) + 2,
+            this.outlineContext.fillText(plyrDet.playerId, col * (this.cellSize + this.padding) + 3,
                 row * (this.cellSize + this.padding) + this.details[plyrDet.playerId].rowValue);
+                
+        // this.outlineContext.font = "bold 10px Times New Roman";
+        // this.outlineContext.fillStyle = "black";
+        // this.outlineContext.fillText("1", col * (this.cellSize + this.padding) + 12,
+        // row * (this.cellSize + this.padding) + 22);
+
     }
 
+    lableLocks (matrixLength, row, col) {
+        const matrix = {
+            21: {area: "areaMain"},
+            20: {area: "area2"},
+            18: {area: "area3"},
+            17: {area: "area4"}        
+        }
+
+        this.lockCoordinate = [ matrix[matrixLength].area, row, col ].join(",");
+
+        if(this.allLocksCoord[this.lockCoordinate] === undefined) return;
+        this.outlineContext.font = "bold 10px Times New Roman";
+        this.outlineContext.fillStyle = "black";
+        this.outlineContext.fillText(this.allLocksCoord[this.lockCoordinate].id, 
+            col * (this.cellSize + this.padding) + 12,
+            row * (this.cellSize + this.padding) + 22);
+    }
 
     #getCenter(w, h) {
         return {
@@ -423,24 +552,41 @@ class GridSystemClient {
 
     colorAndMarkSpots(matrixLength) {
 
-        const doorsCoordinates = {
-
-            21: {x:29, y:1, y2: 19, area: this.cdm.area1},
-            20: {x:1, y:3, area: this.cdm.area2},
-            18: {x:24, y:15, area: this.cdm.area3}
-            
+        const cdmCoordinates = {
+            21: {area: this.cdm.area1},
+            20: {area: this.cdm.area2},
+            18: {area: this.cdm.area3},
+            17: {area: this.cdm.area4}        
         }
 
-        this.outlineContext.fillStyle = "red";
-            this.outlineContext.fillRect(doorsCoordinates[matrixLength].x * (this.cellSize + this.padding),
-                doorsCoordinates[matrixLength].y * (this.cellSize + this.padding),
+        const redDoorCoordinates = {
+            21: {
+                redDoor1: {x:29, y:1},
+                redDoor2: {x:29, y:19}
+            },
+            20: {
+                redDoor1: {x:1, y:3},
+                redDoor2: {x:21, y:11}
+            },
+            18: {
+                redDoor1: {x:24, y:15},
+                redDoor2: {x:1, y:3},
+            },
+            17: {
+                redDoor1: {x:1, y:5},
+                redDoor2: {x:12, y:12}
+            }
+        }
+
+        for (var key in redDoorCoordinates[matrixLength]) {
+            this.outlineContext.fillStyle = "red";
+            this.outlineContext.fillRect(redDoorCoordinates[matrixLength][key].x * (this.cellSize + this.padding),
+            redDoorCoordinates[matrixLength][key].y  * (this.cellSize + this.padding),
                     this.cellSize, this.cellSize);
-            this.outlineContext.fillRect(doorsCoordinates[matrixLength].x * (this.cellSize + this.padding),
-                doorsCoordinates[matrixLength].y2 * (this.cellSize + this.padding),
-                    this.cellSize, this.cellSize);
+        }
 
         //CDM here:
-        doorsCoordinates[matrixLength].area.forEach((coordinate) => {
+        cdmCoordinates[matrixLength].area.forEach((coordinate) => {
             this.outlineContext.fillStyle = "goldenrod";
             this.outlineContext.fillRect(coordinate.x * (this.cellSize + this.padding),
                 coordinate.y * (this.cellSize + this.padding),
@@ -479,6 +625,7 @@ class GridSystemClient {
                     this.cellSize, this.cellSize);
 
                 this.#renderItemsAndPlayer(plyrDet, row, col);
+                this.lableLocks(this.matrix.length, row, col)
             }
         }
 
@@ -487,6 +634,7 @@ class GridSystemClient {
     }
 }
 
+//**********GRID SYSTEM CLIENT**********GRID SYSTEM CLIENT**********GRID SYSTEM CLIENT**********GRID SYSTEM CLIENT
 
 createChatDivs();
 
@@ -503,12 +651,38 @@ document.addEventListener("keydown", (e) => {
 sock.on('chat-to-clients', data => {
     appendMessage(data);
 });
+sock.on('pm', data => {
+    if (nickname === data.playerId) {
+        appendMessage(data.message);
+    }
+    appendMessage(data.message2);
+    
+});
+
+sock.on('lockTrigger', data => {
+    if (nickname != data.playerId) return
+    updateModal(data.lockCoordinateCode);
+    openModal();
+});
+
+sock.on('pushTriggerList', data => {
+    triggerList = Array.prototype.slice.call(data);
+    console.log(triggerList);
+});
+
+// sock.on('removeLockNumber', data => {
+//     const objectEntry = getEntryFromId(data);
+//     console.log(objectEntry);
+//     getObject.allLocksCoord[objectEntry].id = "";
+//     getObject.render();
+//     console.log(getObject.allLocksCoord);
+// });
 
 sock.on('loadMatrix', (data) => {
 
     var i = 0;
     elementsArr.forEach((element) => {
-        element.innerHTML = data.playersArr[i].id + " Stps: " + data.playersArr[i].steps + "/45 || Wllt: " + data.playersArr[i].wallet + "/1000 || Ttl: " + data.playersArr[i].total;
+        element.innerHTML = data.playersArr[i].id + " Stps: " + data.playersArr[i].steps + "/30 || Wllt: " + data.playersArr[i].wallet + "/1000 || Ttl: " + data.playersArr[i].total;
 
         const playerMatrix = [data.playersArr[i].id, data.playersArr[i].area].join(",");
 
@@ -520,6 +694,7 @@ sock.on('loadMatrix', (data) => {
         }
 
         const clientRender = new GridSystemClient(onWhichMatrix[playerMatrix]);
+        getObject = clientRender;
         clientRender.render();
 
         i++;
@@ -547,6 +722,7 @@ sock.on('sendMatrix', (data) => {
         }
 
         const clientRender = new GridSystemClient(onWhichMatrix[playerMatrix]);
+        getObject = clientRender;
         clientRender.render();
 
         i++;
