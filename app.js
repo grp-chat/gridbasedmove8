@@ -272,13 +272,17 @@ class GridSystem {
 
             const lockCoordinateCode = this.allLocksCoord[this.lockCoordinate];
             const playerId = plyrSlot.id;
+            
 
             plyrSlot.storeSteps = plyrSlot.steps;
             plyrSlot.steps = 0;
 
             const lockId = this.allLocksCoord[this.lockCoordinate].id;
-            var string = playerId + " - " + lockId
+            const requirement = this.allLocksCoord[this.lockCoordinate].body;
+            const string = playerId + " - " + lockId;
+            const string2 = requirement;
             this.triggerList.push(string);
+            this.triggerList.push(string2);
             io.emit('pushTriggerList', this.triggerList);
 
             io.emit('lockTrigger', { lockCoordinateCode, playerId });
@@ -571,7 +575,6 @@ io.sockets.on('connection', function (sock) {
         });
     });
     sock.on('sendPW', (data) => {
-        
         gridSystem.playersArr.forEach((player) => {
             if (player.id === data.studentId) {
                 var convertToNum = Number(data.getNum);
@@ -584,7 +587,7 @@ io.sockets.on('connection', function (sock) {
 
                 var index = gridSystem.triggerList.indexOf(playerId + " - " + convertToNum);
                 if (index !== -1) {
-                    gridSystem.triggerList.splice(index, 1);
+                    gridSystem.triggerList.splice(index, 2);
                 }
                 io.emit('pushTriggerList', gridSystem.triggerList);
 
@@ -593,6 +596,20 @@ io.sockets.on('connection', function (sock) {
                 gridSystem.emitToUsers();
             }
         });
+    });
+    sock.on('failed', (data) => {
+        const convertToNum = Number(data.getNum);
+        const playerId = data.studentId;
+        const gridSysPlyrKey = getPlayerObjectKey(playerId);
+        gridSystem[gridSysPlyrKey].steps = gridSystem[gridSysPlyrKey].storeSteps;
+
+        var index = gridSystem.triggerList.indexOf(playerId + " - " + convertToNum);
+        if (index !== -1) {
+            gridSystem.triggerList.splice(index, 1);
+        }
+        io.emit('pushTriggerList', gridSystem.triggerList);
+        gridSystem.emitToUsers();
+
     });
 
     sock.on('mindControl', (data) => {

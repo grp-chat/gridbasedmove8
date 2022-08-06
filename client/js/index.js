@@ -311,6 +311,7 @@ const allCommands = [
     new idCommand("TCR: mind control ", 'mindControl'),
     new numAndIdCommand("TCR: +", 'addSteps'),
     new numAndIdCommand("TCR: good ", 'sendPW'),
+    new numAndIdCommand("TCR: nope ", 'failed'),
     new fixedCommand("TCR: mind control off", 'mindControlOff'),
     new numCommand("TCR: open lock ", 'openLock'),
     new localFixedCommand("TCR: list", openModal),
