@@ -307,7 +307,7 @@ class numAndIdCommand {
 
 const allCommands = [
     new idCommand("TCR: winner ", 'winner'),
-    new freeNumCommand(nickname + ": password ", 'unlockUsingPassword'),
+    new freeNumCommand(nickname + ": pw ", 'unlockUsingPassword'),
     new idCommand("TCR: mind control ", 'mindControl'),
     new numAndIdCommand("TCR: +", 'addSteps'),
     new numAndIdCommand("TCR: good ", 'sendPW'),
@@ -368,9 +368,6 @@ function appendMessage(message) {
     allCommands.forEach((command) => {
         command.executeCommand(message);
     });
-    // command1.executeCommand(message);
-
-
 }
 
 studentsArr = ["TCR", "LXR", "LK", "JHA", "JV", "JL", "SZF", "H", "TJY", "KX"];

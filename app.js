@@ -495,7 +495,9 @@ io.sockets.on('connection', function (sock) {
         var sendGridMatrix1 = gridSystem.matrixMain;
         var sendGridMatrix2 = gridSystem.matrix2;
         var sendGridMatrix3 = gridSystem.matrix3;
-        sock.emit('loadMatrix', { sendGridMatrix1, sendGridMatrix2, sendGridMatrix3, playersArr });
+        var sendGridMatrix4 = gridSystem.matrix4;
+        sock.emit('loadMatrix', { sendGridMatrix1, sendGridMatrix2, sendGridMatrix3, sendGridMatrix4, playersArr });
+        io.emit('pushTriggerList', gridSystem.triggerList);
        
 
         sock.on('keyPress', function (data) {
@@ -605,7 +607,7 @@ io.sockets.on('connection', function (sock) {
 
         var index = gridSystem.triggerList.indexOf(playerId + " - " + convertToNum);
         if (index !== -1) {
-            gridSystem.triggerList.splice(index, 1);
+            gridSystem.triggerList.splice(index, 2);
         }
         io.emit('pushTriggerList', gridSystem.triggerList);
         gridSystem.emitToUsers();
@@ -662,6 +664,8 @@ io.sockets.on('connection', function (sock) {
         const gridSysPlyrKey = getPlayerObjectKey(data.playerId);
         gridSystem[gridSysPlyrKey].steps = gridSystem[gridSysPlyrKey].storeSteps + 30;
         gridSystem.emitToUsers();
+        io.emit('chat-to-clients', data.playerId + " unlocked Lock ID:" + lockId);
+        io.emit('chat-to-clients', "Success!");
         
     });
 
